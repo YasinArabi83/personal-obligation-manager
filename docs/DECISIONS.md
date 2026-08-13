@@ -118,3 +118,19 @@
 - Context: `dotnet new sln` on the .NET 10 SDK defaults to the new XML-based `.slnx` format. The 0001 plan and `src/Api/Dockerfile` reference `Pom.sln`; the `.slnx` default only surfaced when the first Docker build failed (`COPY Pom.sln` not found).
 - Decision: Keep the classic `Pom.sln` (created via `dotnet new sln --format sln`), matching the plan and Dockerfile verbatim.
 - Consequences: Broadest tooling compatibility (older CLI/IDE/CI tooling that predates `.slnx` support). `.slnx` remains a possible future migration; if adopted, the Api Dockerfile's `COPY Pom.sln` / `dotnet restore Pom.sln` lines must change with it.
+
+## ADR-0014: snake_case DB naming via EFCore.NamingConventions, applied on the options builder
+
+- Date: 2026-08-13
+- Status: Accepted
+- Context: `docs/DATABASE.md` §2 mandates snake_case tables/columns/keys/indexes. Doing this manually per entity (`.ToTable("x").HasColumnName("y")` everywhere) is verbose and easy to forget as entities grow (User in 0003, Obligation in 0006, …). Two options were considered in the 0002 plan: a convention package, or manual naming. Q1 chose the package.
+- Decision: Use the `EFCore.NamingConventions` package and call `options.UseSnakeCaseNamingConvention()` once in `PomDbContext.ConfigureOptions` — the single options-tuning point shared by the DI composition root and integration tests. This names every entity's tables/columns/keys/indexes as snake_case automatically.
+- Consequences: No manual `ToTable`/`HasColumnName` needed for naming. Note the package's 10.x API exposes the extension on `DbContextOptionsBuilder`, **not** on `ModelBuilder` — so the convention is applied at options-build time (`ConfigureOptions`), not in `OnModelCreating`. If an entity ever needs a non-snake_case name (legacy interop), that becomes a deliberate per-entity override in its `IEntityTypeConfiguration`.
+
+## ADR-0015: Empty `InitialCreate` baseline migration before any business table
+
+- Date: 2026-08-13
+- Status: Accepted
+- Context: Task 0002 wires the EF Core pipeline (DbContext, Npgsql provider, snake_case convention, DI, Testcontainers test) but introduces no entities (User is 0003). Q2 in the 0002 plan asked whether to ship a truly empty first migration or defer the first migration to 0003. Shipping the empty baseline de-risks 0003: if the first real migration fails, the cause is the entity config, not the pipeline wiring — and the Testcontainers test already proves the empty baseline applies cleanly against real Postgres.
+- Decision: Ship `20260813115423_InitialCreate` now as an empty baseline (empty `Up()`/`Down()`, provider-managed `__EFMigrationsHistory` table is created by EF). 0003's first migration will add the `users` table on top of this baseline.
+- Consequences: One extra migration in history. `dotnet ef migrations list` shows `InitialCreate`. A production database applied against this baseline has only the migrations history table until 0003. Do **not** delete or squash this baseline later — `AGENTS.md`/DATABASE.md §5 forbids editing applied migrations; a later squash would require its own ADR.

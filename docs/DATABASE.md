@@ -17,6 +17,8 @@ PostgreSQL **18**, pinned in `docker-compose.yml` (`postgres:18-alpine`). Chosen
 - Enums: stored as PostgreSQL native `enum` types or as `text` with a CHECK constraint — pick one convention per table and stay consistent; EF Core enum-to-string conversion is acceptable to keep values human-readable in the DB.
 - Timestamps: `timestamptz`, always UTC. Columns: `created_at`, `updated_at`, `deleted_at` (nullable — soft delete marker).
 
+**Enforcement:** snake_case is applied globally by `EFCore.NamingConventions` in `PomDbContext.ConfigureOptions` (ADR-0014) — no manual `ToTable`/`HasColumnName` is needed for naming on new entities.
+
 ## 3. Full schema
 
 ```sql
@@ -171,6 +173,8 @@ Full-text search: Postgres `tsvector` over `title + notes`, with `pg_trgm` as an
 - Migration naming: `<YYYYMMDDHHmm>_<ShortDescription>` (EF Core default timestamp + PascalCase description).
 - Never edit an already-applied migration file — create a new migration to fix a mistake.
 - Any migration must be captured in the task's plan file (`docs/plans/NNNN-slug.md`) per `AGENTS.md` §6, and this file (`DATABASE.md`) updated in the same task.
+
+**Baseline:** `20260813115423_InitialCreate` exists as an intentionally empty baseline (ADR-0015) created in task 0002 — it locks in the provider/naming-convention pipeline before any business table. The first table (`users`) lands in 0003. The `__EFMigrationsHistory` table is created/managed by EF Core itself.
 
 ## 6. Money & currency
 

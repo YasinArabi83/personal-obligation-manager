@@ -11,6 +11,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Application\POM.Application.csproj" />
+    <!--
+      Composition-root exception (docs/ARCHITECTURE.md §2): the API layer references
+      Infrastructure ONLY so Program.cs can call AddInfrastructure for DI registration.
+      Controllers/Application services never touch Infrastructure types directly.
+    -->
+    <ProjectReference Include="..\Infrastructure\POM.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

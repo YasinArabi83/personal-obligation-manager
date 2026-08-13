@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using POM.Persistence.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Infrastructure DI registration will be wired here in task 0002
-// (e.g. builder.Services.AddInfrastructure(builder.Configuration)).
-// Controllers/Application services never call Infrastructure types directly.
+// Infrastructure DI registration (DbContext, future ISmsSender/IFileStorage adapters).
+// Controllers/Application services never call Infrastructure types directly — this is the
+// sanctioned composition-root exception (docs/ARCHITECTURE.md §2).
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 

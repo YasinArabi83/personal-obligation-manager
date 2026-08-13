@@ -9,7 +9,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 ## Phase 0 — Foundation
 
 - [x] `0001` — Repo scaffolding: .NET 10 solution (Domain/Application/Infrastructure/Api) + React project in `src/Web`
-- [ ] `0002` — Database setup: EF Core + DbContext + first empty migration + Postgres wired in `docker-compose.yml`
+- [x] `0002` — Database setup: EF Core + DbContext + first empty migration + Postgres wired in `docker-compose.yml`
 - [ ] `0003` — User entity + ASP.NET Core Identity configured with `PhoneNumberTokenProvider` (no password)
 - [ ] `0004` — OTP auth endpoints (`auth/otp/request`, `auth/otp/verify`) + JWT issuance + basic rate limiting
 - [ ] `0005` — CI pipeline active on the real repo (backend + frontend jobs green)
