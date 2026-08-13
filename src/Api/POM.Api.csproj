@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    API layer: ASP.NET Core minimal API / controllers, DTOs, request validation,
+    auth wiring. Depends on Application only (Infrastructure is referenced in
+    Program.cs purely for DI composition-root wiring, added in task 0002).
+  -->
+  <PropertyGroup>
+    <RootNamespace>POM</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\POM.Application.csproj" />
+  </ItemGroup>
+
+</Project>

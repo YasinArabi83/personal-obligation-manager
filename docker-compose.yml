@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pom}
+      POSTGRES_USER: ${POSTGRES_USER:-pom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   # bind to localhost only — never expose Postgres publicly, see docs/SECURITY.md
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pom}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "127.0.0.1:9000:9000"   # S3 API — internal use by the api service
+      - "127.0.0.1:9001:9001"   # console — for local admin only, never expose publicly
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__Default: "Host=postgres;Database=${POSTGRES_DB:-pom};Username=${POSTGRES_USER:-pom};Password=${POSTGRES_PASSWORD}"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env}
+      Sms__ApiKey: ${SMS_PROVIDER_API_KEY:?set SMS_PROVIDER_API_KEY in .env}
+      Storage__Endpoint: "http://minio:9000"
+      Storage__AccessKey: ${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env}
+      Storage__SecretKey: ${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env}
+    expose:
+      - "8080"   # not published to the host — only reachable via the reverse-proxy service
+
+  web:
+    build:
+      context: ./src/Web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - "80"     # not published to the host — only reachable via the reverse-proxy service
+
+  reverse-proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env, e.g. app.example.ir}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"     # required for Let's Encrypt HTTP-01 challenge
+      - "443:443"
+
+volumes:
+  postgres_data:
+  minio_data:
+  caddy_data:
+  caddy_config:

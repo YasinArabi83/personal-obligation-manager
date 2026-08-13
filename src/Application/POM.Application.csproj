@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Application layer: use cases / application services, port interfaces
+    (ISmsSender, IFileStorage, IOtpSender, ICurrentUser, ...).
+    Depends ONLY on Domain.
+  -->
+  <PropertyGroup>
+    <RootNamespace>POM</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\POM.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

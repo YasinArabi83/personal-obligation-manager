@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Infrastructure layer: EF Core (DbContext, configurations, migrations),
+    PostgreSQL, concrete ISmsSender/IFileStorage implementations, background jobs.
+    Depends on Application (and Domain transitively). Never referenced by Api
+    except through DI registration in the composition root.
+  -->
+  <PropertyGroup>
+    <RootNamespace>POM</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\POM.Application.csproj" />
+  </ItemGroup>
+
+</Project>

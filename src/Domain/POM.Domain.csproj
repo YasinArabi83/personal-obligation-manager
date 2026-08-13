@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Domain layer: pure domain model, value objects, domain events, domain logic.
+    MUST NOT reference EF Core, ASP.NET Core, or any infrastructure package.
+    The dependency arrow points TOWARD this project only.
+  -->
+  <PropertyGroup>
+    <RootNamespace>POM</RootNamespace>
+  </PropertyGroup>
+
+</Project>
