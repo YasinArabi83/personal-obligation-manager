@@ -32,6 +32,6 @@ Thumbs.db
 # ---------- Secrets / local env ----------
 .env
 .env.*
-!env.example
+!.env.example
 appsettings.*.Local.json
 *.pfx

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using POM.Auth.Jwt;
+using POM.Users;
 
 namespace POM.Persistence;
 
@@ -8,19 +10,33 @@ namespace POM.Persistence;
 /// DbContexts (see docs/ARCHITECTURE.md §4).
 /// </summary>
 /// <remarks>
-/// No <c>DbSet&lt;&gt;</c> properties yet — entity configurations land with their tasks
-/// (<c>User</c> → 0003, <c>Obligation</c> → 0006, etc.). The first migration (InitialCreate)
-/// is intentionally an empty baseline that locks in the pipeline before any business table.
-/// Snake_case table/column naming (docs/DATABASE.md §2) is applied via
-/// <see cref="ConfigureOptions"/> so every future entity is named correctly without per-entity
-/// manual <c>ToTable</c>/<c>HasColumnName</c>. <see cref="ConfigureOptions"/> is the single
-/// place options are tuned; both the DI composition root and integration tests call it so a
-/// test never drifts from production configuration.
+/// Entity configurations live in <c>Persistence.Configurations.&lt;Aggregate&gt;</c> and are
+/// applied automatically via <see cref="OnModelCreating"/>. Snake_case table/column naming
+/// (docs/DATABASE.md §2) is applied via <see cref="ConfigureOptions"/> so every entity is named
+/// correctly without per-entity manual <c>ToTable</c>/<c>HasColumnName</c>. <see cref="ConfigureOptions"/>
+/// is the single place options are tuned; both the DI composition root and integration tests call
+/// it so a test never drifts from production configuration.
 /// </remarks>
 public class PomDbContext : DbContext
 {
     public PomDbContext(DbContextOptions<PomDbContext> options) : base(options)
     {
+    }
+
+    /// <summary>Users aggregate. The custom Identity <c>UserStore</c> reads/writes through this.</summary>
+    public DbSet<User> Users => Set<User>();
+
+    /// <summary>
+    /// Refresh tokens (auth store, not a Domain aggregate — plan 0004 Q3). Raw tokens are never
+    /// stored; only their SHA-256 hash (<see cref="Jwt.RefreshToken.TokenHash"/>).
+    /// </summary>
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // Pick up every IEntityTypeConfiguration<> in this assembly (e.g. UserConfiguration).
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(PomDbContext).Assembly);
     }
 
     /// <summary>
@@ -31,7 +47,7 @@ public class PomDbContext : DbContext
     {
         // Apply snake_case naming globally — tables, columns, keys, indexes.
         // EFCore.NamingConventions exposes this as an options-builder extension (10.x API).
-        // See ADR (snake_case naming) in docs/DECISIONS.md.
+        // See ADR-0014 in docs/DECISIONS.md.
         options.UseSnakeCaseNamingConvention();
     }
 }

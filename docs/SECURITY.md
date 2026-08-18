@@ -9,8 +9,8 @@
 | Asset | Threat | Mitigation |
 |---|---|---|
 | User's obligation data (financial/legal, sensitive) | Cross-user data leakage | Every query filtered by `UserId` server-side (never trust a client-supplied id); integration tests explicitly assert isolation (see `docs/TESTING.md`) |
-| Phone number / OTP flow | OTP brute-force, SMS bombing / cost abuse | Rate-limit `POST /api/v1/auth/otp/request` per phone number and per IP; short OTP lifetime (2 minutes); lock out after N failed verify attempts |
-| JWT | Token theft / replay | Short access-token lifetime + refresh token rotation; HTTPS enforced everywhere (no plaintext transport); tokens never logged |
+| Phone number / OTP flow | OTP brute-force, SMS bombing / cost abuse | Rate-limit `POST /api/v1/auth/otp/request` per phone number and per IP; framework-managed OTP lifetime (~3–6 min via Identity's built-in `PhoneNumberTokenProvider` — ADR-0016); lock out after N failed verify attempts |
+| JWT | Token theft / replay | Short access-token lifetime (15 min) + hashed, rotated refresh tokens with family-based reuse detection (ADR-0017); HTTPS enforced everywhere (no plaintext transport); tokens never logged |
 | Attachments | Unauthorized file access | Files are private in MinIO/S3-compatible storage; access only via short-lived signed URLs or authenticated API calls, never public bucket listing |
 | Database | Unauthorized direct access | Postgres never exposed publicly — only reachable inside the Docker Compose network; strong generated password via secret, not committed |
 | Secrets (DB password, JWT signing key, SMS provider API key, MinIO keys) | Leakage via source control or logs | All secrets via environment variables / `.env` (git-ignored) or Docker secrets — never hardcoded, never logged |
@@ -20,11 +20,11 @@
 ## 2. Auth security details
 
 - No password exists anywhere in the system — see `docs/ARCHITECTURE.md` §5 for the OTP flow.
-- OTP token lifetime: **2 minutes** (ADR-0001).
-- Recommended rate limits (tune once real usage data exists):
+- OTP token lifetime is framework-managed via Identity's built-in `PhoneNumberTokenProvider` (~3–6 min, not precisely configurable — ADR-0001/ADR-0016). Each successful verify rotates the `SecurityStamp`, making a code single-use.
+- Rate limiting is **hybrid** (ADR-0017): a coarse per-IP fixed window (30/min, built-in `AddRateLimiter` on `auth/*`) plus an in-memory per-phone window inside `IOtpRateLimiter` (the middleware can't partition on a JSON-body phone):
   - Max 3 OTP requests per phone number per 10 minutes.
   - Max 5 failed verify attempts per phone number per hour before a temporary lockout.
-- JWT: short-lived access token (e.g. 15–30 min) + longer-lived refresh token; refresh tokens stored hashed, rotated on use, revocable.
+- JWT: short-lived access token (15 min) + hashed, rotated, revocable refresh token (30 days). Refresh tokens are random URL-safe bytes stored only as a SHA-256 hash (`refresh_tokens.token_hash`), grouped by `family_id`; replaying a consumed token revokes the entire family and rejects (ADR-0017). `POST auth/refresh` rotates the token and returns the new one.
 - `PhoneNumberConfirmed` only flips to `true` after the first successful OTP verification for that number.
 
 ## 3. Secrets management
@@ -69,3 +69,4 @@
 |---|---|
 | Initial | Threat model and runbook drafted alongside the rest of the doc set. Deploy target still undecided — TLS termination approach and off-site backup location to be finalized once a hosting decision is made. |
 | Update | Deploy target finalized as a domestic Iranian VPS (ADR-0009). TLS termination via Caddy reverse proxy added to `docker-compose.yml`; off-site backup requirement made concrete (different provider/account than the primary VPS). Recovery runbook (§5) still needs a real dry run once the specific VPS and off-site backup destination are provisioned. |
+| 0004 | Auth endpoints implemented (ADR-0017): JWT access tokens (15 min) + hashed/rotated refresh tokens (30 days) with family-based reuse detection; hybrid rate limiting (per-IP + per-phone) wired; OTP lifetime note reconciled to Identity's framework-managed window (ADR-0016). `.env.example` committed (git-ignored `.env` is the local copy). |

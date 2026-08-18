@@ -1,30 +1,48 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!--
+	<!--
     Infrastructure layer: EF Core (DbContext, configurations, migrations),
     PostgreSQL, concrete ISmsSender/IFileStorage implementations, background jobs.
     Depends on Application (and Domain transitively). Never referenced by Api
     except through DI registration in the composition root.
   -->
-  <PropertyGroup>
-    <RootNamespace>POM</RootNamespace>
-  </PropertyGroup>
+	<PropertyGroup>
+		<RootNamespace>POM</RootNamespace>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Application\POM.Application.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="POM.Infrastructure.Tests" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
-    <!-- Pinned to unify the version pulled transitively by the Npgsql provider (which otherwise
+	<ItemGroup>
+		<ProjectReference Include="..\Application\POM.Application.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
+		<!-- Identity core abstractions only — no ASP.NET Core hosting packages. Stores has
+         IdentityUser<TKey> + the IUserStore interfaces; Core has UserManager + token providers.
+         This is where all ASP.NET Core Identity code lives; the Domain layer never references it
+         (ARCHITECTURE.md §2/§3, ADR-0016). .NET 10-aligned 10.x. -->
+		<PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="10.0.11" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+		<!-- Pinned to unify the version pulled transitively by the Npgsql provider (which otherwise
          resolves to an older patch), so API and tests bind one EF Core Relational assembly. -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-  </ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+		<!-- JWT issuance (access tokens). The Api layer (Web SDK) brings AddJwtBearer validation from the
+         shared framework; Infrastructure only needs the token-creation types (ADR-0017). -->
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
+
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
+	</ItemGroup>
 
 </Project>

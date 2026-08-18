@@ -27,8 +27,9 @@ Instead of a separate entity per obligation type (which would mean 10+ tables, 1
 | CalendarPreference | enum: `Jalali` \| `Gregorian` | Default `Jalali`. Display/input preference only — storage is always UTC/Gregorian. |
 | CreatedAt | datetime (UTC) | |
 | DeletedAt | datetime? (UTC) | Soft delete / account deletion. |
+| SecurityStamp | string | Identity token entropy (ADR-0016). Infrastructure-managed, not a domain concept — needed by the OTP token provider. |
 
-Auth notes: no `PasswordHash` field exists anywhere. Backed by ASP.NET Core Identity with a custom `PhoneNumberTokenProvider` (see `AGENTS.md` §0/§2). OTP token lifetime: 2 minutes.
+Auth notes: no `PasswordHash` field exists anywhere. Backed by ASP.NET Core Identity with the **built-in** `PhoneNumberTokenProvider` over a custom `IUserStore` on the clean `users` table (no `AspNetUsers` schema). The OTP token validity window is framework-managed (~3–6 minutes via Identity's internal TOTP engine) and **not** precisely configurable — see ADR-0001 / ADR-0016. The `Id` is app-assigned (`Guid.NewGuid()` in `User.Create`).
 
 ### 2.2 Obligation (MVP — Aggregate Root)
 

@@ -9,4 +9,15 @@
     <RootNamespace>POM</RootNamespace>
   </PropertyGroup>
 
+  <!--
+    The persistence adapter (POM.Infrastructure) is a "friend" of the domain: it may hydrate
+    and sync auth-relevant entity state through internal setters without inventing fake domain
+    methods. No other layer gets this access. This keeps the public domain API clean while
+    letting the custom Identity UserStore translate ApplicationUser <-> domain User.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="POM.Infrastructure" />
+    <InternalsVisibleTo Include="POM.Infrastructure.Tests" />
+  </ItemGroup>
+
 </Project>

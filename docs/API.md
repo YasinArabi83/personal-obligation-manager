@@ -23,22 +23,28 @@
 
 ## 2. Auth
 
-No password anywhere. Flow: request OTP → verify OTP → receive JWT.
+No password anywhere. Flow: request OTP → verify OTP → receive JWT + refresh token.
 
 ```
 POST   /api/v1/auth/otp/request
   Body: { "phoneNumber": "string" }
   → 204 No Content (OTP sent via SMS). Rate-limited — see docs/SECURITY.md.
+  → 429 (otp_rate_limited) with Retry-After header when the per-phone window is exceeded.
 
 POST   /api/v1/auth/otp/verify
   Body: { "phoneNumber": "string", "code": "string" }
-  → 200 OK { "accessToken": "string", "expiresAt": "datetime", "user": { "id", "phoneNumber", "displayName" } }
-  → 401 if code invalid/expired (2-minute lifetime)
+  → 200 OK { "accessToken": "string", "expiresAt": "datetime", "refreshToken": "string", "user": { "id", "phoneNumber", "displayName" } }
+  → 401 if code invalid/expired (otp_invalid_or_expired; OTP lifetime is framework-managed ~3–6 min — ADR-0016)
+  → 429 (otp_rate_limited) after 5 failed verifies for the phone within an hour
 
 POST   /api/v1/auth/refresh
   Body: { "refreshToken": "string" }
-  → 200 OK { "accessToken": "string", "expiresAt": "datetime" }
+  → 200 OK { "accessToken": "string", "expiresAt": "datetime", "refreshToken": "string" }
+  → 401 if the refresh token is invalid, expired, or already consumed (the consumed token and
+         its whole family are revoked on a replay — ADR-0017)
 ```
+
+The `refreshToken` returned by `verify` and `refresh` is **rotated on every use**: the consumed token is revoked and a new one issued in the same family (ADR-0017). Access tokens live 15 min, refresh tokens 30 days (configurable via `Jwt:AccessLifetimeMinutes` / `Jwt:RefreshLifetimeDays`).
 
 ## 3. Obligations
 

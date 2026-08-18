@@ -29,8 +29,21 @@ users (
   display_name text,
   calendar_pref text not null default 'Jalali',  -- 'Jalali' | 'Gregorian'
   created_at timestamptz not null default now(),
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  security_stamp text not null                    -- Identity token entropy (ADR-0016); no password column exists.
 );
+
+refresh_tokens (                                  -- auth store, NOT a Domain aggregate (ADR-0017)
+  id uuid primary key,
+  user_id uuid not null references users(id),
+  family_id uuid not null,                        -- reuse-detection grouping; one family per login
+  token_hash bytea not null,                      -- SHA-256 of the raw token; raw token never stored
+  expires_at timestamptz not null default now(),  -- now + 30 days (Jwt:RefreshLifetimeDays)
+  revoked_at timestamptz,                         -- set on rotation/revocation/replay; null while active
+  created_at timestamptz not null default now()
+);
+-- indexes: unique ix_refresh_tokens_token_hash; ix_refresh_tokens_family_id (family-wide revocation scan);
+--          ix_refresh_tokens_user_id (FK).
 
 obligations (
   id uuid primary key,
@@ -174,7 +187,7 @@ Full-text search: Postgres `tsvector` over `title + notes`, with `pg_trgm` as an
 - Never edit an already-applied migration file — create a new migration to fix a mistake.
 - Any migration must be captured in the task's plan file (`docs/plans/NNNN-slug.md`) per `AGENTS.md` §6, and this file (`DATABASE.md`) updated in the same task.
 
-**Baseline:** `20260813115423_InitialCreate` exists as an intentionally empty baseline (ADR-0015) created in task 0002 — it locks in the provider/naming-convention pipeline before any business table. The first table (`users`) lands in 0003. The `__EFMigrationsHistory` table is created/managed by EF Core itself.
+**Baseline:** `20260813115423_InitialCreate` exists as an intentionally empty baseline (ADR-0015) created in task 0002 — it locks in the provider/naming-convention pipeline before any business table. The first table (`users`) lands in 0003 via `20260813134304_CreateUsers`, and the auth `refresh_tokens` table lands in 0004 via `20260813153051_AddRefreshTokens` (ADR-0017). The `__EFMigrationsHistory` table is created/managed by EF Core itself.
 
 ## 6. Money & currency
 
