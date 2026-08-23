@@ -19,7 +19,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - [x] `0006` — Obligation aggregate core (no recurrence/reminder yet) + repository + migration
 - [x] `0007` — Category entity + CRUD endpoints + default system categories
 - [x] `0008` — Obligation hardening (restore/no retention, Domain `ExtraFields` validation, soft-delete isolation, ILIKE search, nullable `DueDate` with deterministic ordering) + Full Obligation CRUD API per `docs/API.md` §3
-- [ ] `0009` — Obligation list/filter/search page (frontend)
+- [x] `0009` — Obligation list/filter/search page (frontend), including the minimal phone+OTP login slice and shared API client (ADR-0028)
 - [ ] `0010` — Create/edit Obligation form (frontend), including dynamic `ExtraFields` by type
 - [ ] `0011` — Shared Jalali date component (frontend) + UTC↔Jalali conversion
 - [ ] `0012` — Dashboard endpoint + UI (Today/Week/Month/Overdue) per `docs/API.md` §4
