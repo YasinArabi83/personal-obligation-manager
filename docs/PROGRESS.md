@@ -12,7 +12,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - [x] `0002` — Database setup: EF Core + DbContext + first empty migration + Postgres wired in `docker-compose.yml`
 - [x] `0003` — User entity + ASP.NET Core Identity configured with `PhoneNumberTokenProvider` (no password)
 - [x] `0004` — OTP auth endpoints (`auth/otp/request`, `auth/otp/verify`) + JWT issuance + basic rate limiting
-- [ ] `0005` — CI pipeline active on the real repo (backend + frontend jobs green)
+- [~] `0005` — CI workflow implemented and locally verified; awaiting a GitHub-hosted run for Docker and real-repository confirmation
 
 ## Phase 1 — Core Obligation
 

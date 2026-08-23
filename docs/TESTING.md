@@ -53,11 +53,11 @@ dotnet test src/tests/POM.Domain.Tests
 
 # Frontend (Vitest + React Testing Library, in src/Web)
 cd src/Web
-npm test            # = vitest --run (same as CI's `npm test -- --run`)
+npm test            # = vitest --run (same command used by CI)
 ```
 
 (Adjust paths once the actual solution/workspace layout exists — keep this section accurate as the repo is scaffolded.)
 
 ## 7. CI expectations
 
-Every push/PR runs the full backend test suite (unit + integration, via GitHub Actions with Testcontainers) and the frontend test suite. See `.github/workflows/ci.yml`. A PR with red tests is never merged; there is no "skip tests" escape hatch for this project.
+Every push/PR runs the full backend test suite (unit + integration, via GitHub Actions with Testcontainers) and the frontend test suite. The workflow invokes the existing `npm test` script, which already expands to `vitest --run`. See `.github/workflows/ci.yml`. A PR with red tests is never merged; there is no "skip tests" escape hatch for this project.

@@ -20,6 +20,10 @@
 
 	<ItemGroup>
 		<PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<!-- Identity core abstractions only — no ASP.NET Core hosting packages. Stores has
          IdentityUser<TKey> + the IUserStore interfaces; Core has UserManager + token providers.
          This is where all ASP.NET Core Identity code lives; the Domain layer never references it
@@ -39,10 +43,6 @@
          shared framework; Infrastructure only needs the token-creation types (ADR-0017). -->
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
 
-		<PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.11" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
 	</ItemGroup>
 
 </Project>

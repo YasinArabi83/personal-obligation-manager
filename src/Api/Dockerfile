@@ -14,6 +14,8 @@ COPY src/Application/POM.Application.csproj src/Application/
 COPY src/Infrastructure/POM.Infrastructure.csproj src/Infrastructure/
 COPY src/Api/POM.Api.csproj src/Api/
 COPY src/tests/POM.Domain.Tests/POM.Domain.Tests.csproj src/tests/POM.Domain.Tests/
+COPY src/tests/POM.Infrastructure.Tests/POM.Infrastructure.Tests.csproj src/tests/POM.Infrastructure.Tests/
+COPY src/tests/POM.Api.Tests/POM.Api.Tests.csproj src/tests/POM.Api.Tests/
 
 RUN dotnet restore Pom.sln
 

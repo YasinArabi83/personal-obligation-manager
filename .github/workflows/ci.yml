@@ -19,22 +19,26 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore Pom.sln
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build Pom.sln --no-restore --configuration Release
 
       - name: Test
         # Integration tests use Testcontainers, which needs Docker —
         # available by default on GitHub-hosted ubuntu-latest runners.
-        run: dotnet test --no-build --configuration Release --logger "trx" --collect:"XPlat Code Coverage"
+        run: dotnet test Pom.sln --no-build --configuration Release --logger "trx" --collect:"XPlat Code Coverage"
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-test-results
-          path: "**/*.trx"
+          path: |
+            **/*.trx
+            **/coverage.cobertura.xml
+          if-no-files-found: warn
+          retention-days: 14
 
   frontend:
     name: Frontend (build + test)
@@ -59,7 +63,9 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test -- --run
+        # The package script already invokes `vitest --run`; passing --run again
+        # makes Vitest reject the duplicated boolean option.
+        run: npm test
 
       - name: Build
         run: npm run build

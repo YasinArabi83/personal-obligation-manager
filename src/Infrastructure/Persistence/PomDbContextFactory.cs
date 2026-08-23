@@ -14,9 +14,11 @@ public sealed class PomDbContextFactory : IDesignTimeDbContextFactory<PomDbConte
     public PomDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<PomDbContext>()
-            .UseNpgsql("Host=127.0.0.1;Port=5432;Database=pom;Username=pom;Password=dev", npgsql =>
+            .UseNpgsql("Host=localhost;Port=5433;Database=obligation_test;Username=postgres;Password=postgres", npgsql =>
                 npgsql.MigrationsAssembly(typeof(PomDbContext).Assembly.FullName));
         PomDbContext.ConfigureOptions(options);
         return new PomDbContext(options.Options);
     }
 }
+
+
