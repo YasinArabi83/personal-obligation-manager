@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using POM.Obligations;
+using POM.Taxonomy;
 
 namespace POM.Persistence.Configurations.Obligations;
 
@@ -23,5 +24,7 @@ internal sealed class ObligationConfiguration : IEntityTypeConfiguration<Obligat
         builder.HasIndex(x => new { x.UserId, x.Status, x.DueDate }).HasDatabaseName("ix_obligations_user_status_due");
         builder.HasIndex(x => new { x.UserId, x.Type }).HasDatabaseName("ix_obligations_user_type");
         builder.HasOne<POM.Users.User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => x.CategoryId).HasDatabaseName("ix_obligations_category_id");
+        builder.HasOne<Category>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
     }
 }

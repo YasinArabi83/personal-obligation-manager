@@ -111,6 +111,8 @@ categories (
   is_default boolean not null default false,
   icon text
 );
+-- indexes: ix_categories_user_name; ix_obligations_category_id
+-- obligations.category_id references categories(id) with ON DELETE RESTRICT.
 
 tags (
   id uuid primary key,
@@ -171,6 +173,8 @@ create index ix_reminders_obligation           on reminders (obligation_id);
 create index ix_notification_log_reminder_sent on notification_log (reminder_id, sent_at);
 create index ix_attachments_obligation         on attachments (obligation_id);
 create index ix_activity_log_obligation        on activity_log (obligation_id, created_at);
+create index ix_obligations_category_id        on obligations (category_id);
+create index ix_categories_user_name            on categories (user_id, name);
 
 -- search
 create index ix_obligations_title_trgm on obligations using gin (title gin_trgm_ops);
@@ -190,6 +194,9 @@ Full-text search: Postgres `tsvector` over `title + notes`, with `pg_trgm` as an
 **Baseline:** `20260813115423_InitialCreate` exists as an intentionally empty baseline (ADR-0015) created in task 0002 — it locks in the provider/naming-convention pipeline before any business table. The first table (`users`) lands in 0003 via `20260813134304_CreateUsers`, the auth `refresh_tokens` table lands in 0004 via `20260813153051_AddRefreshTokens` (ADR-0017), and the core `obligations` table lands in 0006 via `20260823175937_CreateObligations` (ADR-0019). `obligations.category_id` is intentionally nullable and has no FK until task 0007 creates `categories`. The `__EFMigrationsHistory` table is created/managed by EF Core itself.
 
 ## 6. Money & currency
+
+Task 0007 adds `20260823181536_AddCategoriesAndCategoryForeignKey`, which creates `categories`,
+seeds the six system defaults, and adds the nullable `obligations.category_id` foreign key/index.
 
 `extra_fields` may carry an `amount` (integer, Rial) and `currency` (default `IRT`) for financial obligation types (installment, debt, cheque, rent, bill, subscription — see `docs/DOMAIN.md` §4). Never store money as `float`/`double`/`numeric` with implicit rounding ambiguity — always integer Rial.
 

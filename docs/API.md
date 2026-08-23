@@ -110,6 +110,12 @@ POST   /api/v1/categories
 PUT    /api/v1/categories/{id}
 DELETE /api/v1/categories/{id}
 
+Category list returns system defaults (`userId = null`) plus the current user's own categories.
+Names are trimmed and limited to 100 characters. System defaults and categories owned by another
+user are intentionally reported as `404 not_found` on update/delete. Deleting a user category
+referenced by one of that user's obligations returns `409 conflict`; obligations are never deleted
+or silently detached.
+
 GET    /api/v1/tags
 POST   /api/v1/tags
 DELETE /api/v1/tags/{id}
@@ -142,4 +148,5 @@ GET    /api/v1/account/export             -- JSON export of the user's data
 | `otp_rate_limited` | Too many OTP requests for this phone number |
 | `unauthorized` | Missing/invalid JWT |
 | `forbidden` | Valid JWT but not the resource owner |
+| `conflict` | The requested mutation conflicts with existing references |
 | `attachment_limit_exceeded` | More than 5 files, or file over 10MB |

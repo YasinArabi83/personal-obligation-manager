@@ -43,6 +43,7 @@ app.UseAuthorization();
 
 // Auth routes: anonymous (no JWT yet), gated by per-IP + per-phone rate limiting.
 app.MapAuthEndpoints();
+app.MapCategoryEndpoints();
 
 // Health check stays public; every other future endpoint calls RequireAuthorization().
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }))

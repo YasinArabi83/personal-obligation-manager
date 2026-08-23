@@ -62,3 +62,6 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - Native app
 - AI-assisted features
 - Multi-user / family sharing
+
+Task 0007 is complete: Category entity, persistence, defaults, CRUD endpoints, isolation tests,
+and documentation are implemented.

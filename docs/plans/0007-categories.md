@@ -1,6 +1,6 @@
 # 0007 — Category entity, CRUD, and system defaults
 
-- Status: Draft
+- Status: Done
 - Date: 2026-08-23
 - Related issue/task: `PROGRESS.md` Phase 1 `0007` — Category entity + CRUD endpoints + default system categories
 

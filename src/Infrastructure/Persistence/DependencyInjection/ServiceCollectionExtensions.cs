@@ -4,6 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using POM.Persistence;
 using POM.Obligations.Ports;
 using POM.Persistence.Repositories;
+using POM.Persistence.Seeding;
+using POM.Taxonomy;
+using POM.Taxonomy.Ports;
 
 namespace POM.Persistence.DependencyInjection;
 
@@ -27,6 +30,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IObligationRepository, ObligationRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<CategoryAppService>();
+        services.AddScoped<DefaultCategorySeeder>();
 
         return services;
     }

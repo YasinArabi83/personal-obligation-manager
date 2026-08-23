@@ -179,3 +179,15 @@
 - Context: The `Obligation` model includes a category relationship, but the `categories` table is deliberately scheduled for task 0007. A non-null foreign key in task 0006 would either create an invalid migration or pull taxonomy scope into the aggregate-core task.
 - Decision: Task 0006 creates `obligations.category_id` as nullable and does not create a foreign-key constraint. Task 0007 will introduce `categories` and add the nullable foreign key and ownership validation.
 - Consequences: Core obligations can be persisted without a category during the first slice. Task 0007 must add the categories table and its FK/index deliberately, and API validation must prevent cross-user category references.
+
+## ADR-0020: Category defaults and referenced-category deletion policy
+
+- Date: 2026-08-23
+- Status: Accepted
+- Context: Task 0007 needed deterministic system categories and a safe behavior when a user category is still referenced by an obligation.
+- Decision:
+  - Seed six stable, globally visible defaults (`Bills`, `Subscriptions`, `Documents`, `Maintenance`, `Appointments`, `Personal`) with fixed UUIDs. The migration inserts them and the infrastructure `DefaultCategorySeeder` is idempotent for repeated startup/test provisioning.
+  - User-facing reads return defaults plus the current user's categories. System defaults and other users' categories are treated as not found for mutations to avoid existence leaks.
+  - A referenced user category cannot be deleted; the API returns `409 conflict`. The obligation FK uses `ON DELETE RESTRICT`, so no obligation is cascaded or silently orphaned.
+  - Category names/icons are trimmed; names and icons are capped at 100 characters. No uniqueness constraint is imposed in this slice.
+- Consequences: Defaults are stable across environments and safe to re-run. Users must reassign obligations before deleting a referenced category; later UX can add reassignment explicitly.

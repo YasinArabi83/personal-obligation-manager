@@ -128,6 +128,10 @@ Notification system stays intentionally simple: no `Notification`/`Channel`/`Tem
 | IsDefault | bool | |
 | Icon | string | |
 
+Category names are trimmed and must be 1–100 characters; icons are optional and limited to 100
+characters. System defaults have `UserId = null` and are immutable through the user-facing API.
+User-owned categories are scoped by `UserId`.
+
 ### 2.8 Tag / ObligationTag (MVP, should-have priority)
 
 | Field | Type | Notes |

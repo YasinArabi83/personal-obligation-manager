@@ -7,6 +7,10 @@ using POM.Auth.Ports;
 using POM.Auth.RateLimiting;
 using POM.Identity.DependencyInjection;
 using POM.Persistence;
+using POM.Persistence.Repositories;
+using POM.Persistence.Seeding;
+using POM.Taxonomy.Ports;
+using POM.Taxonomy;
 
 namespace POM.Infrastructure.Tests;
 
@@ -45,6 +49,9 @@ internal static class TestHost
 
         services.AddAuth(config);
         services.AddOtpAuthInfrastructure(config);
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<DefaultCategorySeeder>();
+        services.AddScoped<CategoryAppService>();
 
         // Replace the real TimeProvider (registered by AddOtpAuthInfrastructure) with the fake clock
         // so JwtTokenService / InMemoryOtpRateLimiter share the controllable clock.

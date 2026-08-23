@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using POM.Auth.Jwt;
 using POM.Obligations;
+using POM.Taxonomy;
 using POM.Users;
 
 namespace POM.Persistence;
@@ -33,6 +34,7 @@ public class PomDbContext : DbContext
     /// </summary>
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Obligation> Obligations => Set<Obligation>();
+    public DbSet<Category> Categories => Set<Category>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
