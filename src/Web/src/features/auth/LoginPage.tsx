@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { WarningCircle } from '@phosphor-icons/react';
 import { ApiError } from '../../shared/api/error';
 import { toEnglishDigits } from '../../shared/formatDate';
+import { AppMark } from '../../shared/ui/AppMark';
 import { requestOtp, verifyOtp } from './auth.api';
 import { useAuth } from './AuthContext';
 
@@ -66,74 +68,95 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-lg font-bold text-slate-900">ورود</h1>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-teal-50 via-neutral-50 to-neutral-50 px-4">
+      <div className="w-full max-w-sm">
+        <div className="card p-8 sm:p-10">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <AppMark size={48} />
+            <div>
+              <h1 className="text-lg font-bold text-slate-900">ورود</h1>
+              <p className="mt-1 text-xs text-slate-500">مدیریت تعهدات شخصی</p>
+            </div>
+          </div>
 
-        {step === 'phone' ? (
-          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <p className="text-sm text-slate-600">
-              شماره موبایل خود را وارد کنید تا کد تایید پیامک شود.
-            </p>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-slate-700">
-                شماره موبایل
-              </span>
-              <input
-                type="tel"
-                dir="ltr"
-                autoComplete="tel"
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-left text-slate-900 focus:border-sky-500 focus:outline-none"
-                value={phoneInput}
-                onChange={(event) => setPhoneInput(event.target.value)}
-                placeholder="09123456789"
-              />
-            </label>
-            <SubmitButton submitting={submitting} label="دریافت کد تایید" />
-          </form>
-        ) : (
-          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <p className="text-sm text-slate-600">
-              کد تایید ارسال‌شده به شماره{' '}
-              <span dir="ltr" className="font-medium">
-                {toEnglishDigits(phoneInput).trim()}
-              </span>{' '}
-              را وارد کنید.
-            </p>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-slate-700">
-                کد تایید
-              </span>
-              <input
-                type="text"
-                dir="ltr"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-left tracking-widest text-slate-900 focus:border-sky-500 focus:outline-none"
-                value={codeInput}
-                onChange={(event) => setCodeInput(event.target.value)}
-              />
-            </label>
-            <SubmitButton submitting={submitting} label="ورود" />
-            <button
-              type="button"
-              className="text-sm text-sky-600 hover:underline"
-              onClick={() => {
-                setStep('phone');
-                setCodeInput('');
-                setError(null);
-              }}
+          {step === 'phone' ? (
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-slate-700">
+                  شماره موبایل
+                </span>
+                <input
+                  type="tel"
+                  dir="ltr"
+                  autoComplete="tel"
+                  className="field-input text-left"
+                  value={phoneInput}
+                  onChange={(event) => setPhoneInput(event.target.value)}
+                  placeholder="09123456789"
+                />
+              </label>
+              <SubmitButton submitting={submitting} label="دریافت کد تایید" />
+              <p className="text-center text-xs leading-5 text-slate-400">
+                کد تایید برای شماره واردشده پیامک می‌شود.
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <p className="text-sm leading-6 text-slate-600">
+                کد تایید ارسال‌شده به شماره{' '}
+                <span dir="ltr" className="font-medium tabular-nums text-slate-800">
+                  {toEnglishDigits(phoneInput).trim()}
+                </span>{' '}
+                را وارد کنید.
+              </p>
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-slate-700">
+                  کد تایید
+                </span>
+                <input
+                  type="text"
+                  dir="ltr"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="field-input text-left tracking-[0.4em]"
+                  value={codeInput}
+                  onChange={(event) => setCodeInput(event.target.value)}
+                  placeholder="––––––"
+                />
+              </label>
+              <SubmitButton submitting={submitting} label="ورود" />
+              <button
+                type="button"
+                className="btn-ghost mx-auto flex"
+                onClick={() => {
+                  setStep('phone');
+                  setCodeInput('');
+                  setError(null);
+                }}
+              >
+                تغییر شماره
+              </button>
+            </form>
+          )}
+
+          {error && (
+            <p
+              role="alert"
+              className="mt-5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm leading-6 text-red-700"
             >
-              تغییر شماره
-            </button>
-          </form>
-        )}
-
-        {error && (
-          <p role="alert" className="mt-4 text-sm text-red-600">
-            {error}
-          </p>
-        )}
+              <WarningCircle
+                size={18}
+                weight="fill"
+                aria-hidden="true"
+                className="mt-1 shrink-0"
+              />
+              <span>{error}</span>
+            </p>
+          )}
+        </div>
+        <p className="mt-4 text-center text-xs text-slate-400">
+          ورود فقط با شماره موبایل و کد پیامکی انجام می‌شود.
+        </p>
       </div>
     </main>
   );
@@ -147,11 +170,7 @@ function SubmitButton({
   label: string;
 }) {
   return (
-    <button
-      type="submit"
-      disabled={submitting}
-      className="w-full rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-    >
+    <button type="submit" disabled={submitting} className="btn-primary w-full">
       {submitting ? 'در حال انجام…' : label}
     </button>
   );

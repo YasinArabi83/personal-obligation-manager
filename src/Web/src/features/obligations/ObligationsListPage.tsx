@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { SignOut, Tray, WarningCircle } from '@phosphor-icons/react';
 import { ApiError } from '../../shared/api/error';
 import { useCategories } from '../categories/useCategories';
 import { useAuth } from '../auth/AuthContext';
+import { AppMark } from '../../shared/ui/AppMark';
 import { ObligationRow } from './ObligationRow';
 import { ObligationsFilters } from './ObligationsFilters';
 import { Pagination } from './Pagination';
@@ -16,11 +18,12 @@ import { useObligations } from './useObligations';
 const SEARCH_DEBOUNCE_MS = 300;
 
 export default function ObligationsListPage() {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useMemo(() => parseFilters(searchParams), [searchParams]);
 
+  // Local input for the debounced q filter; re-synced whenever the URL changes externally.
   const [qInput, setQInput] = useState(filters.q);
   useEffect(() => {
     setQInput(filters.q);
@@ -57,32 +60,36 @@ export default function ObligationsListPage() {
     [categories],
   );
 
-  const {
-    data,
-    error,
-    isError,
-    isFetching,
-    isPending,
-    refetch,
-  } = obligationsQuery;
+  const { data, error, isError, isFetching, isPending, refetch } =
+    obligationsQuery;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-neutral-50">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">
-              مدیریت تعهدات شخصی
-            </h1>
-            <p className="text-xs text-slate-500">فهرست تعهدات</p>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <AppMark size={36} />
+            <div>
+              <h1 className="text-base font-bold leading-6 text-slate-900">
+                مدیریت تعهدات شخصی
+              </h1>
+              <p className="text-xs text-slate-400">فهرست تعهدات</p>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={signOut}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            خروج
-          </button>
+          <div className="flex items-center gap-2">
+            {user && (
+              <span
+                dir="ltr"
+                className="hidden rounded-full bg-slate-100 px-3 py-1 text-xs tabular-nums text-slate-500 sm:block"
+              >
+                {user.phoneNumber}
+              </span>
+            )}
+            <button type="button" onClick={signOut} className="btn-secondary h-9 py-0">
+              <SignOut size={14} aria-hidden="true" />
+              خروج
+            </button>
+          </div>
         </div>
       </header>
 
@@ -110,32 +117,34 @@ export default function ObligationsListPage() {
           <EmptyState />
         ) : (
           <>
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <table className="min-w-full text-right">
-                <thead className="bg-slate-50 text-xs text-slate-500">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 font-medium">عنوان</th>
-                    <th scope="col" className="px-4 py-3 font-medium">نوع</th>
-                    <th scope="col" className="px-4 py-3 font-medium">اولویت</th>
-                    <th scope="col" className="px-4 py-3 font-medium">سررسید</th>
-                    <th scope="col" className="px-4 py-3 font-medium">دسته</th>
-                    <th scope="col" className="px-4 py-3 font-medium">وضعیت</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {data.items.map((obligation) => (
-                    <ObligationRow
-                      key={obligation.id}
-                      obligation={obligation}
-                      categoryName={
-                        obligation.categoryId
-                          ? (categoryNameById.get(obligation.categoryId) ?? '—')
-                          : '—'
-                      }
-                    />
-                  ))}
-                </tbody>
-              </table>
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-right">
+                  <thead className="bg-slate-50 text-xs text-slate-500">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 font-medium">عنوان</th>
+                      <th scope="col" className="px-4 py-3 font-medium">نوع</th>
+                      <th scope="col" className="px-4 py-3 font-medium">اولویت</th>
+                      <th scope="col" className="px-4 py-3 font-medium">سررسید</th>
+                      <th scope="col" className="px-4 py-3 font-medium">دسته</th>
+                      <th scope="col" className="px-4 py-3 font-medium">وضعیت</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {data.items.map((obligation) => (
+                      <ObligationRow
+                        key={obligation.id}
+                        obligation={obligation}
+                        categoryName={
+                          obligation.categoryId
+                            ? (categoryNameById.get(obligation.categoryId) ?? '—')
+                            : '—'
+                        }
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {isFetching && (
@@ -160,7 +169,12 @@ export default function ObligationsListPage() {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div
+      role="status"
+      aria-busy="true"
+      className="card space-y-2 p-4"
+    >
+      <span className="sr-only">در حال بارگذاری…</span>
       {[0, 1, 2, 3, 4].map((row) => (
         <div
           key={row}
@@ -173,9 +187,15 @@ function LoadingSkeleton() {
 
 function EmptyState() {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <p className="text-sm text-slate-500">تعهدی یافت نشد.</p>
-      <p className="mt-1 text-xs text-slate-400">
+    <div className="card flex flex-col items-center gap-3 border-dashed p-12 text-center">
+      <span
+        aria-hidden="true"
+        className="flex size-14 items-center justify-center rounded-full bg-teal-50 text-teal-600"
+      >
+        <Tray size={28} weight="duotone" />
+      </span>
+      <p className="text-sm font-medium text-slate-700">تعهدی یافت نشد.</p>
+      <p className="text-xs leading-5 text-slate-400">
         فیلترها را تغییر دهید یا تعهد جدیدی بسازید.
       </p>
     </div>
@@ -192,14 +212,11 @@ function ErrorState({
   return (
     <div
       role="alert"
-      className="rounded-xl border border-red-200 bg-red-50 p-6 text-center"
+      className="flex flex-col items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-8 text-center"
     >
+      <WarningCircle size={28} weight="fill" aria-hidden="true" className="text-red-500" />
       <p className="text-sm text-red-700">{message}</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-3 rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm text-red-700 hover:bg-red-100"
-      >
+      <button type="button" onClick={onRetry} className="btn-primary h-9">
         تلاش مجدد
       </button>
     </div>

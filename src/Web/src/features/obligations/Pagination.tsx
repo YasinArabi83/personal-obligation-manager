@@ -1,3 +1,5 @@
+import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+
 interface PaginationProps {
   page: number;
   totalPages: number;
@@ -18,27 +20,30 @@ export function Pagination({
   return (
     <nav
       aria-label="صفحه‌بندی"
-      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+      className="card flex items-center justify-between px-4 py-3"
     >
-      <span className="text-xs text-slate-500">
+      <span className="text-xs tabular-nums text-slate-500">
         مجموع {totalCount} تعهد — صفحه {page} از {totalPages}
       </span>
       <div className="flex gap-2">
+        {/* RTL: «قبلی» points right, «بعدی» points left. */}
         <button
           type="button"
           disabled={disabled || page <= 1}
           onClick={() => onPageChange(page - 1)}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-secondary h-9 py-0"
         >
+          <CaretRight size={14} aria-hidden="true" weight="bold" />
           قبلی
         </button>
         <button
           type="button"
           disabled={disabled || page >= totalPages}
           onClick={() => onPageChange(page + 1)}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-secondary h-9 py-0"
         >
           بعدی
+          <CaretLeft size={14} aria-hidden="true" weight="bold" />
         </button>
       </div>
     </nav>

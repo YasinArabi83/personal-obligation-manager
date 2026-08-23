@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx';
 import { AuthProvider } from './features/auth/AuthProvider.tsx';
+import 'vazirmatn/Vazirmatn-font-face.css';
 import './index.css';
 
 const queryClient = new QueryClient({
