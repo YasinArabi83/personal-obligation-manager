@@ -45,10 +45,10 @@ Auth notes: no `PasswordHash` field exists anywhere. Backed by ASP.NET Core Iden
 | EndDate | datetime? (UTC) | For obligations with a range (e.g. lease) |
 | Status | enum | `Pending`, `Completed`, `Skipped`, `Overdue`, `Archived` |
 | Priority | enum | `Low`, `Medium`, `High` |
-| CategoryId | Guid | FK → Category |
+| CategoryId | Guid? | Nullable during task 0006; task 0007 adds category persistence and ownership validation (ADR-0019) |
 | PersonId | Guid? | Nullable FK → Person |
 | AssetId | Guid? | Nullable FK → Asset |
-| ExtraFields | JSONB | Type-specific data (see §4) |
+| ExtraFields | JSONB | Type-specific data (see §4), always a JSON object and defaults to `{}` |
 | IsRecurring | bool | |
 | CreatedAt / UpdatedAt / DeletedAt | datetime (UTC) | Soft delete supported |
 
@@ -248,7 +248,7 @@ obligations (
   start_date, due_date, end_date,  -- all Gregorian/UTC
   status,                          -- Pending, Completed, Skipped, Overdue, Archived
   priority,                        -- Low, Medium, High
-  category_id, person_id (nullable), asset_id (nullable),
+  category_id (nullable in task 0006; category FK arrives in task 0007), person_id (nullable), asset_id (nullable),
   extra_fields JSONB,              -- amount, currency, installment_no, ...
   is_recurring bool,
   created_at, updated_at, deleted_at
@@ -293,3 +293,4 @@ Design note: `extra_fields JSONB` means adding a new obligation type later (e.g.
 |---|---|---|
 | Initial | Domain model created from spec §6–7, 14–19, 25 | — |
 | Initial | `User` auth fields changed from Email/Password to PhoneNumber + OTP | See `AGENTS.md` §0 |
+| 2026-08-23 | Added the core `Obligation` aggregate, status/priority/type enums, and nullable category reference pending taxonomy work | ADR-0019 |

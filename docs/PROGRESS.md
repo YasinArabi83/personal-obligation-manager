@@ -16,7 +16,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 
 ## Phase 1 — Core Obligation
 
-- [ ] `0006` — Obligation aggregate core (no recurrence/reminder yet) + repository + migration
+- [x] `0006` — Obligation aggregate core (no recurrence/reminder yet) + repository + migration
 - [ ] `0007` — Category entity + CRUD endpoints + default system categories
 - [ ] `0008` — Full Obligation CRUD API (complete/postpone/skip/archive) per `docs/API.md` §3
 - [ ] `0009` — Obligation list/filter/search page (frontend)

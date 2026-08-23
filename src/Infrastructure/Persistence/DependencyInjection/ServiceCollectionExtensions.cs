@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using POM.Persistence;
+using POM.Obligations.Ports;
+using POM.Persistence.Repositories;
 
 namespace POM.Persistence.DependencyInjection;
 
@@ -23,6 +25,8 @@ public static class ServiceCollectionExtensions
                 npgsql.MigrationsAssembly(typeof(PomDbContext).Assembly.FullName));
             PomDbContext.ConfigureOptions(options);
         });
+
+        services.AddScoped<IObligationRepository, ObligationRepository>();
 
         return services;
     }

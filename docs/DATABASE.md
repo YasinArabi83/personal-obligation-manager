@@ -56,7 +56,7 @@ obligations (
   end_date timestamptz,
   status text not null default 'Pending',   -- Pending, Completed, Skipped, Overdue, Archived
   priority text not null default 'Medium',  -- Low, Medium, High
-  category_id uuid not null references categories(id),
+  category_id uuid,                         -- nullable until categories ships in task 0007 (ADR-0019)
   person_id uuid references people(id),
   asset_id uuid references assets(id),
   extra_fields jsonb not null default '{}',
@@ -187,7 +187,7 @@ Full-text search: Postgres `tsvector` over `title + notes`, with `pg_trgm` as an
 - Never edit an already-applied migration file — create a new migration to fix a mistake.
 - Any migration must be captured in the task's plan file (`docs/plans/NNNN-slug.md`) per `AGENTS.md` §6, and this file (`DATABASE.md`) updated in the same task.
 
-**Baseline:** `20260813115423_InitialCreate` exists as an intentionally empty baseline (ADR-0015) created in task 0002 — it locks in the provider/naming-convention pipeline before any business table. The first table (`users`) lands in 0003 via `20260813134304_CreateUsers`, and the auth `refresh_tokens` table lands in 0004 via `20260813153051_AddRefreshTokens` (ADR-0017). The `__EFMigrationsHistory` table is created/managed by EF Core itself.
+**Baseline:** `20260813115423_InitialCreate` exists as an intentionally empty baseline (ADR-0015) created in task 0002 — it locks in the provider/naming-convention pipeline before any business table. The first table (`users`) lands in 0003 via `20260813134304_CreateUsers`, the auth `refresh_tokens` table lands in 0004 via `20260813153051_AddRefreshTokens` (ADR-0017), and the core `obligations` table lands in 0006 via `20260823175937_CreateObligations` (ADR-0019). `obligations.category_id` is intentionally nullable and has no FK until task 0007 creates `categories`. The `__EFMigrationsHistory` table is created/managed by EF Core itself.
 
 ## 6. Money & currency
 

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using POM.Auth.Jwt;
+using POM.Obligations;
 using POM.Users;
 
 namespace POM.Persistence;
@@ -31,6 +32,7 @@ public class PomDbContext : DbContext
     /// stored; only their SHA-256 hash (<see cref="Jwt.RefreshToken.TokenHash"/>).
     /// </summary>
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Obligation> Obligations => Set<Obligation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
