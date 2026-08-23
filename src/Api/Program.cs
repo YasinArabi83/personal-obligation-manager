@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using System.Text.Json.Serialization;
 using POM;
 using POM.Endpoints;
 using POM.Auth.RateLimiting;
@@ -8,6 +9,13 @@ using POM.Identity.DependencyInjection;
 using POM.Persistence.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure JSON options for enum string serialization/deserialization
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
+});
 
 // Infrastructure DI registration (DbContext, future ISmsSender/IFileStorage adapters).
 // Controllers/Application services never call Infrastructure types directly — this is the
@@ -44,6 +52,7 @@ app.UseAuthorization();
 // Auth routes: anonymous (no JWT yet), gated by per-IP + per-phone rate limiting.
 app.MapAuthEndpoints();
 app.MapCategoryEndpoints();
+app.MapObligationEndpoints();
 
 // Health check stays public; every other future endpoint calls RequireAuthorization().
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }))

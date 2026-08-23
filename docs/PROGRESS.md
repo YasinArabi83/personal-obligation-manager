@@ -17,8 +17,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 ## Phase 1 — Core Obligation
 
 - [x] `0006` — Obligation aggregate core (no recurrence/reminder yet) + repository + migration
-- [ ] `0007` — Category entity + CRUD endpoints + default system categories
-- [ ] `0008` — Full Obligation CRUD API (complete/postpone/skip/archive) per `docs/API.md` §3
+- [x] `0007` — Category entity + CRUD endpoints + default system categories
+- [x] `0008` — Obligation hardening (restore/no retention, Domain `ExtraFields` validation, soft-delete isolation, ILIKE search, nullable `DueDate` with deterministic ordering) + Full Obligation CRUD API per `docs/API.md` §3
 - [ ] `0009` — Obligation list/filter/search page (frontend)
 - [ ] `0010` — Create/edit Obligation form (frontend), including dynamic `ExtraFields` by type
 - [ ] `0011` — Shared Jalali date component (frontend) + UTC↔Jalali conversion
@@ -62,6 +62,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - Native app
 - AI-assisted features
 - Multi-user / family sharing
+
+Task `0007` taxonomy is already implemented in this worktree. The hardening decisions are
+therefore tracked with task `0008` rather than creating a conflicting second `0007` plan file or
+renumbering the established task sequence.
 
 Task 0007 is complete: Category entity, persistence, defaults, CRUD endpoints, isolation tests,
 and documentation are implemented.

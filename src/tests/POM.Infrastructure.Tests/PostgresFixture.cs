@@ -9,15 +9,34 @@ namespace POM.Infrastructure.Tests;
 /// </summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18-alpine")
-        .WithDatabase("pom_tests")
-        .WithUsername("pom")
-        .WithPassword("dev")
-        .Build();
+    private PostgreSqlContainer? _container;
 
-    public string ConnectionString => _container.GetConnectionString();
+    public string ConnectionString => _container!.GetConnectionString();
 
-    public async Task InitializeAsync() => await _container.StartAsync();
+    public async Task InitializeAsync()
+    {
+        const int maxAttempts = 3;
+        for (var attempt = 1; ; attempt++)
+        {
+            var container = new PostgreSqlBuilder("postgres:18-alpine")
+                .WithDatabase("pom_tests")
+                .WithUsername("pom")
+                .WithPassword("dev")
+                .Build();
 
-    public Task DisposeAsync() => _container.DisposeAsync().AsTask();
+            try
+            {
+                await container.StartAsync();
+                _container = container;
+                return;
+            }
+            catch (Exception) when (attempt < maxAttempts)
+            {
+                await container.DisposeAsync().AsTask();
+            }
+        }
+    }
+
+    public Task DisposeAsync() =>
+        _container?.DisposeAsync().AsTask() ?? Task.CompletedTask;
 }

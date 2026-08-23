@@ -52,7 +52,7 @@ obligations (
   title text not null,
   notes text,
   start_date timestamptz,
-  due_date timestamptz not null,
+  due_date timestamptz,
   end_date timestamptz,
   status text not null default 'Pending',   -- Pending, Completed, Skipped, Overdue, Archived
   priority text not null default 'Medium',  -- Low, Medium, High
@@ -177,11 +177,12 @@ create index ix_obligations_category_id        on obligations (category_id);
 create index ix_categories_user_name            on categories (user_id, name);
 
 -- search
-create index ix_obligations_title_trgm on obligations using gin (title gin_trgm_ops);
--- requires: create extension if not exists pg_trgm;
+-- MVP uses parameterized ILIKE over obligation title/notes; no extension or search index is added yet.
 ```
 
-Full-text search: Postgres `tsvector` over `title + notes`, with `pg_trgm` as an `ILIKE` fallback for stronger partial-match support on Persian text (per spec §20).
+Trigram/full-text search is intentionally deferred. If dataset size, measured query latency, or user-reported
+search quality later justifies `pg_trgm`/`tsvector`, introduce it through a separate ADR and reversible migration
+covering the PostgreSQL extension, indexes, and deployment impact (ADR-0023).
 
 ## 5. Migration policy
 
@@ -192,6 +193,9 @@ Full-text search: Postgres `tsvector` over `title + notes`, with `pg_trgm` as an
 - Any migration must be captured in the task's plan file (`docs/plans/NNNN-slug.md`) per `AGENTS.md` §6, and this file (`DATABASE.md`) updated in the same task.
 
 **Baseline:** `20260813115423_InitialCreate` exists as an intentionally empty baseline (ADR-0015) created in task 0002 — it locks in the provider/naming-convention pipeline before any business table. The first table (`users`) lands in 0003 via `20260813134304_CreateUsers`, the auth `refresh_tokens` table lands in 0004 via `20260813153051_AddRefreshTokens` (ADR-0017), and the core `obligations` table lands in 0006 via `20260823175937_CreateObligations` (ADR-0019). `obligations.category_id` is intentionally nullable and has no FK until task 0007 creates `categories`. The `__EFMigrationsHistory` table is created/managed by EF Core itself.
+
+Task 0008 adds a reversible migration that changes `obligations.due_date` to nullable to support deterministic
+`NULLS LAST` pagination ordering.
 
 ## 6. Money & currency
 

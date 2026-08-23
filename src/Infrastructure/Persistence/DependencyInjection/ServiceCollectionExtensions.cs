@@ -7,6 +7,8 @@ using POM.Persistence.Repositories;
 using POM.Persistence.Seeding;
 using POM.Taxonomy;
 using POM.Taxonomy.Ports;
+using POM.Obligations;
+using POM.Obligations.ExtraFields;
 
 namespace POM.Persistence.DependencyInjection;
 
@@ -33,6 +35,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<CategoryAppService>();
         services.AddScoped<DefaultCategorySeeder>();
+        services.AddScoped<IExtraFieldsValidator, ExtraFieldsValidator>();
+        services.AddScoped<ObligationAppService>();
 
         return services;
     }

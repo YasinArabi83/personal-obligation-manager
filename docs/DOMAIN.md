@@ -14,6 +14,10 @@ Instead of a separate entity per obligation type (which would mean 10+ tables, 1
 
 ---
 
+The type-specific validation ownership is clarified in §4.1: `ExtraFields` rules are Domain invariants
+implemented by a Domain validator; the Application layer only orchestrates the use case and maps errors.
+This clarification supersedes the earlier summary sentence that described the validator as Application-layer logic.
+
 ## 2. Entities
 
 ### 2.1 User (MVP)
@@ -41,7 +45,7 @@ Auth notes: no `PasswordHash` field exists anywhere. Backed by ASP.NET Core Iden
 | Title | string | Required |
 | Notes | text | Free text |
 | StartDate | datetime? (UTC) | |
-| DueDate | datetime (UTC) | Required |
+| DueDate | datetime? (UTC) | Optional; list ordering places null values last |
 | EndDate | datetime? (UTC) | For obligations with a range (e.g. lease) |
 | Status | enum | `Pending`, `Completed`, `Skipped`, `Overdue`, `Archived` |
 | Priority | enum | `Low`, `Medium`, `High` |
@@ -53,6 +57,14 @@ Auth notes: no `PasswordHash` field exists anywhere. Backed by ASP.NET Core Iden
 | CreatedAt / UpdatedAt / DeletedAt | datetime (UTC) | Soft delete supported |
 
 Dates are always stored UTC/Gregorian. Convert to Jalali only in the presentation layer — this is critical so recurrence/reminder calculations never hit calendar bugs.
+
+**Lifecycle and restore semantics (MVP):**
+
+- `Completed`, `Skipped`, and `Archived` are terminal/locked states for detail updates; the API reports update attempts as `409 Conflict`.
+- `SoftDelete()` sets `DeletedAt` and is owner-scoped by every repository query.
+- `Restore()` clears `DeletedAt` and may restore any soft-deleted obligation that has not been hard-deleted. No retention window is enforced in MVP.
+- `Restore()` raises `ObligationRestored`, alongside the existing lifecycle domain events. A future hard-delete/retention policy may narrow restore eligibility and requires a new decision.
+- When `DueDate` is null, no due-date range comparison is performed; if a due date is present, it must remain within any supplied start/end range.
 
 ### 2.3 RecurrenceRule (MVP)
 
@@ -223,9 +235,28 @@ No accounting layer — just the minimal fields needed on `ExtraFields` per type
 | Bill/Utility | Amount (nullable — variable), DueDate |
 | Subscription | Amount, BillingCycle (`Monthly`/`Yearly`), NextChargeDate |
 
-`Amount` is always `decimal` + `Currency` (default `IRT`/Toman; architecture allows other currencies later). No automatic aggregate calculations (e.g. "total debt") in MVP; a simple dashboard sum is should-have if desired.
+Money-like `Amount` values are signed 64-bit integer Rial values; never use floating-point or implicit decimal
+rounding. No automatic aggregate calculations (e.g. "total debt") in MVP; a simple dashboard sum is should-have if desired.
 
 Persisted amounts in the relational schema (outside ExtraFields where applicable) follow the fixed rule from `AGENTS.md`: `bigint` Rial, never `float`/`double`.
+
+### 4.1 MVP domain validation contract
+
+`ExtraFields` validation is a Domain invariant implemented by a per-type validator (for example,
+`IExtraFieldsValidator`). The validator rejects malformed JSON, missing required fields, unknown enum
+values, and money-like values that are not representable as a signed 64-bit integer. It performs no
+accounting calculations, conversions, or aggregation.
+
+For the current obligation types, the MVP schemas are:
+
+| Type | Required/validated fields |
+|---|---|
+| `Payment` | `amount` (required signed 64-bit integer Rial); optional `currency` string |
+| `Document` | `documentType` (required non-empty string); attachments hold file contents |
+| `Subscription` | `amount` (required signed 64-bit integer Rial), `billingCycle` (`Monthly`/`Yearly`), `nextChargeDate` (UTC datetime) |
+| `Task`, `Contract`, `Debt`, `Maintenance`, `Appointment`, `Custom` | No additional required fields in MVP; payload must still be a JSON object |
+
+Adding a new type-specific schema requires a Domain change and tests, not a database migration.
 
 ---
 
@@ -287,7 +318,7 @@ assets (id, user_id, name, type, metadata JSONB)
 activity_log (id, obligation_id, user_id, action, changes JSONB, created_at)
 ```
 
-Design note: `extra_fields JSONB` means adding a new obligation type later (e.g. "anniversary") doesn't require a migration — only new validation logic in the Application layer.
+Design note: `extra_fields JSONB` means adding a new obligation type later (e.g. "anniversary") doesn't require a migration — only new validation logic in the Domain layer.
 
 ---
 

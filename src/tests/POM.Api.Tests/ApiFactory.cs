@@ -19,13 +19,9 @@ namespace POM.Api.Tests;
 /// </summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _db = new PostgreSqlBuilder("postgres:18-alpine")
-        .WithDatabase("pom_api_tests")
-        .WithUsername("pom")
-        .WithPassword("dev")
-        .Build();
+    private PostgreSqlContainer? _db;
 
-    public string ConnectionString => _db.GetConnectionString();
+    public string ConnectionString => _db!.GetConnectionString();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -45,13 +41,32 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     async Task IAsyncLifetime.InitializeAsync()
     {
-        await _db.StartAsync();
+        const int maxAttempts = 3;
+        for (var attempt = 1; ; attempt++)
+        {
+            var db = new PostgreSqlBuilder("postgres:18-alpine")
+                .WithDatabase("pom_api_tests")
+                .WithUsername("pom")
+                .WithPassword("dev")
+                .Build();
+
+            try
+            {
+                await db.StartAsync();
+                _db = db;
+                break;
+            }
+            catch (Exception) when (attempt < maxAttempts)
+            {
+                await db.DisposeAsync().AsTask();
+            }
+        }
 
         // Apply migrations against the fresh container before any request runs.
         using var scope = Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PomDbContext>();
-        await db.Database.MigrateAsync();
+        var context = scope.ServiceProvider.GetRequiredService<PomDbContext>();
+        await context.Database.MigrateAsync();
     }
 
-    Task IAsyncLifetime.DisposeAsync() => _db.DisposeAsync().AsTask();
+    Task IAsyncLifetime.DisposeAsync() => _db?.DisposeAsync().AsTask() ?? Task.CompletedTask;
 }

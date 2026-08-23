@@ -26,5 +26,7 @@ internal sealed class ObligationConfiguration : IEntityTypeConfiguration<Obligat
         builder.HasOne<POM.Users.User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => x.CategoryId).HasDatabaseName("ix_obligations_category_id");
         builder.HasOne<Category>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasQueryFilter(x => x.DeletedAt == null);
     }
 }

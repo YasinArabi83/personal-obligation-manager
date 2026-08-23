@@ -59,12 +59,23 @@ POST   /api/v1/obligations/{id}/complete
 POST   /api/v1/obligations/{id}/postpone
        Body: { "newDueDate": "datetime" }
 POST   /api/v1/obligations/{id}/skip
-       Body: { "reason": "string?" }
 POST   /api/v1/obligations/{id}/archive
-POST   /api/v1/obligations/{id}/restore          -- undo soft delete, within retention window
+POST   /api/v1/obligations/{id}/restore          -- undo soft delete; no MVP retention window
 ```
 
-`POST`/`PUT` bodies use a dedicated `ObligationDto` — never accept or return the domain entity directly. `ExtraFields` is validated server-side per `Obligation.Type` (see `docs/DOMAIN.md` §4).
+`POST`/`PUT` bodies use dedicated DTOs — never accept or return the domain entity directly. `ExtraFields` is validated as a type-specific domain invariant (see `docs/DOMAIN.md` §4). Skip reasons are explicitly out of scope for MVP; the skip endpoint accepts no request body.
+
+All list results are ordered by `dueDate ASC, id ASC`, with `NULL dueDate` values last. The `q` filter uses parameterized PostgreSQL `ILIKE` over the supported text fields in MVP; trigram/full-text search is deferred to a separately documented decision.
+
+`dueDate` is optional in create/update payloads. When present it is an ISO-8601 UTC datetime; when absent it is serialized as `null`.
+
+Updating an obligation whose status is `Completed`, `Skipped`, or `Archived` returns `409 Conflict`:
+
+```json
+{ "error": { "code": "conflict", "message": "A closed obligation cannot be edited." } }
+```
+
+Restore is owner-scoped and may restore any soft-deleted obligation that has not been hard-deleted. No retention window is enforced in MVP.
 
 ## 4. Dashboard
 

@@ -191,3 +191,59 @@
   - A referenced user category cannot be deleted; the API returns `409 conflict`. The obligation FK uses `ON DELETE RESTRICT`, so no obligation is cascaded or silently orphaned.
   - Category names/icons are trimmed; names and icons are capped at 100 characters. No uniqueness constraint is imposed in this slice.
 - Consequences: Defaults are stable across environments and safe to re-run. Users must reassign obligations before deleting a referenced category; later UX can add reassignment explicitly.
+
+## ADR-0021: Obligation restore has no MVP retention window
+
+- Date: 2026-08-23
+- Status: Accepted
+- Context: The obligation API includes restore for soft-deleted obligations, but no hard-delete or retention policy exists in the MVP schema or requirements.
+- Decision: Add an explicit `Obligation.Restore()` domain method. Any soft-deleted, non-hard-deleted obligation may be restored by its owner at any time in MVP. Ownership is enforced in repository/query predicates as well as at the API boundary. `Restore()` raises `ObligationRestored`, consistent with the aggregate's existing lifecycle events.
+- Consequences: There is no expiry check or retention-window error in the MVP restore flow. Introducing hard delete or a bounded recovery window later requires a new ADR and corresponding domain, API, and persistence changes.
+
+## ADR-0022: Skip reasons are out of scope for MVP
+
+- Date: 2026-08-23
+- Status: Accepted
+- Context: `docs/API.md` listed a `skip.reason` request field, but `Obligation` and the database have no reason field and no MVP requirement justifies adding one.
+- Decision: Remove `skip.reason` from `docs/API.md` and the API contract. The skip endpoint accepts no request body. Skip reasons are explicitly out of scope for MVP; documentation is corrected to match the aggregate/schema rather than adding a new field.
+- Consequences: No schema migration or `ExtraFields` convention is introduced for skip reasons. A future reason feature requires an explicit task and decision.
+
+## ADR-0023: Start Persian text search with parameterized ILIKE
+
+- Date: 2026-08-23
+- Status: Accepted
+- Context: Obligation list search must support MVP partial matching, including Persian text, without adding PostgreSQL extensions or deployment complexity prematurely.
+- Decision: Implement the `q` filter with parameterized PostgreSQL `ILIKE` over the supported obligation text fields. Revisit when a measured dataset-size threshold, query-latency regression, or repeated user reports show that search quality/performance is insufficient. Adopting `pg_trgm` or full-text search later requires a separate ADR covering the extension, migration, indexing, and deployment impact.
+- Consequences: MVP search has no trigram/full-text index and may require a later optimization as data volume grows.
+
+## ADR-0024: Per-type ExtraFields validation is a Domain invariant
+
+- Date: 2026-08-23
+- Status: Accepted
+- Context: `ExtraFields` is JSONB, but required fields and primitive types are business rules. Keeping these checks in the API/Application layer would allow other callers to bypass the invariant.
+- Decision: Add a provider-independent Domain per-type validator (for example, `IExtraFieldsValidator`) and invoke it from aggregate creation/update paths. MVP schemas cover `Payment`, `Document`, and `Subscription`; the remaining obligation types require only a JSON-object payload until their schemas are defined. Money-like values must be signed 64-bit integer Rial values. Validation is deterministic and performs no accounting calculations, conversions, or aggregation.
+- Consequences: Domain tests own the valid/missing-field/wrong-type matrix. Application/API layers translate validation failures but do not define the business schema. New type schemas require Domain code/tests, not a database migration.
+
+## ADR-0025: Global soft-delete query filter with an explicit restore bypass
+
+- Date: 2026-08-23
+- Status: Accepted
+- Context: Relying on every repository query to remember `DeletedAt IS NULL` risks soft-delete leakage as the model grows, while restore needs a controlled way to load deleted rows.
+- Decision: Configure an EF Core global query filter for `Obligation` so normal queries automatically exclude soft-deleted rows. Provide a narrowly named repository method for owner-scoped restore lookup that explicitly bypasses the filter; do not disable query filters broadly or expose an unscoped bypass.
+- Consequences: Normal list/get/update/delete/action paths inherit the safety default. Restore tests must prove both query isolation and that User B cannot restore User A's deleted obligation.
+
+## ADR-0026: DueDate is nullable with explicit NULLS LAST ordering
+
+- Date: 2026-08-23
+- Status: Accepted
+- Context: Obligation list pagination must remain deterministic for obligations that do not yet have a due date, but the initial aggregate/schema marked `DueDate` as required.
+- Decision: Make `Obligation.DueDate` nullable in the Domain/API/database contract and add a reversible migration in task 0008. List queries order by `DueDate ASC, Id ASC` with explicit `NULLS LAST` semantics; repository tests must verify the generated SQL/behavior against PostgreSQL and pagination must include null-due-date rows.
+- Consequences: Create/update validation no longer requires a due date. Date-range validation applies only when a due date is present, and postpone remains invalid when no meaningful due date can be supplied. Any recurrence/reminder feature that requires a due date must add its own invariant when those aggregates are introduced.
+
+## ADR-0027: List binding, UTC filter normalization, and restore persistence
+
+- Date: 2026-08-24
+- Status: Accepted
+- Context: Task 0008 integration tests exposed three defects: (1) `[AsParameters]` treats non-nullable `int` properties as required query parameters (empty-body 400 whenever `page`/`pageSize` were omitted) and would bind Application DTO property names (`query`, `categoryId`) instead of the documented `q`/`category`; (2) Npgsql rejects `DateTime.Kind=Unspecified` date filters against `timestamptz`, so `from`/`to` crashed the list query; (3) soft-deleted obligations could never be restored because the only update path re-queried with the global `DeletedAt IS NULL` filter.
+- Decision: Bind list filters as individual nullable parameters in the API layer and map them onto a mutable Application-layer `ObligationListRequest` (keeps ASP.NET out of Application and matches the documented `?status=&type=&category=&from=&to=&q=` contract). Normalize incoming date filters to UTC in the Application service before they reach the repository. Persist restore through a narrowly named `UpdateIncludingDeletedAsync` repository method that bypasses only the soft-delete filter while keeping owner scoping, mirroring ADR-0025. Command request DTOs are positional records so unit tests can construct them directly; JSON contract is unchanged via `[property: JsonPropertyName]`. Testcontainers Postgres fixtures retry container startup up to three times to absorb intermittent `pg_ctl` entrypoint timeouts on loaded machines.
+- Consequences: Missing pagination params fall back to server defaults (page=1, pageSize=20, max 100). Bare dates without timezone are interpreted as UTC per docs/API.md transport rules. Restore is the only write path allowed past the soft-delete filter. `POM.Application.Tests` is now registered in `Pom.sln`.

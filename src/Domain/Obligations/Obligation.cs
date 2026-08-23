@@ -1,4 +1,5 @@
 using System.Text.Json;
+using POM.Obligations.ExtraFields;
 
 namespace POM.Obligations;
 
@@ -14,7 +15,7 @@ public sealed class Obligation
     public string Title { get; private set; } = null!;
     public string? Notes { get; private set; }
     public DateTime? StartDate { get; private set; }
-    public DateTime DueDate { get; private set; }
+    public DateTime? DueDate { get; private set; }
     public DateTime? EndDate { get; private set; }
     public ObligationStatus Status { get; private set; }
     public ObligationPriority Priority { get; private set; }
@@ -30,7 +31,7 @@ public sealed class Obligation
         Guid userId,
         ObligationType type,
         string title,
-        DateTime dueDate,
+        DateTime? dueDate = null,
         DateTime? startDate = null,
         DateTime? endDate = null,
         string? notes = null,
@@ -38,17 +39,25 @@ public sealed class Obligation
         Guid? categoryId = null,
         string? extraFields = null,
         bool isRecurring = false,
-        DateTime? now = null)
+        DateTime? now = null,
+        IExtraFieldsValidator? extraFieldsValidator = null)
     {
         if (userId == Guid.Empty) throw new ArgumentException("User id is required.", nameof(userId));
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title is required.", nameof(title));
 
-        var utcDue = ToUtc(dueDate, nameof(dueDate));
+        DateTime? utcDue = dueDate.HasValue ? ToUtc(dueDate.Value, nameof(dueDate)) : null;
         DateTime? utcStart = startDate.HasValue ? ToUtc(startDate.Value, nameof(startDate)) : null;
         DateTime? utcEnd = endDate.HasValue ? ToUtc(endDate.Value, nameof(endDate)) : null;
         ValidateDateRange(utcStart, utcDue, utcEnd);
         var timestamp = now.HasValue ? ToUtc(now.Value, nameof(now)) : DateTime.UtcNow;
         var normalizedExtra = NormalizeExtraFields(extraFields);
+
+        if (extraFieldsValidator is not null)
+        {
+            var validation = extraFieldsValidator.Validate(type, normalizedExtra);
+            if (!validation.IsValid)
+                throw new ArgumentException(validation.ErrorMessage ?? "ExtraFields validation failed.", nameof(extraFields));
+        }
 
         var result = new Obligation
         {
@@ -72,13 +81,14 @@ public sealed class Obligation
         return result;
     }
 
-    public void UpdateDetails(string title, DateTime dueDate, DateTime? startDate = null, DateTime? endDate = null,
-        string? notes = null, ObligationPriority? priority = null, Guid? categoryId = null, string? extraFields = null)
+    public void UpdateDetails(string title, DateTime? dueDate = null, DateTime? startDate = null, DateTime? endDate = null,
+        string? notes = null, ObligationPriority? priority = null, Guid? categoryId = null, string? extraFields = null,
+        IExtraFieldsValidator? extraFieldsValidator = null)
     {
         if (Status is ObligationStatus.Completed or ObligationStatus.Skipped or ObligationStatus.Archived)
             throw new InvalidOperationException("A closed obligation cannot be edited.");
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title is required.", nameof(title));
-        var utcDue = ToUtc(dueDate, nameof(dueDate));
+        DateTime? utcDue = dueDate.HasValue ? ToUtc(dueDate.Value, nameof(dueDate)) : null;
         DateTime? utcStart = startDate.HasValue ? ToUtc(startDate.Value, nameof(startDate)) : null;
         DateTime? utcEnd = endDate.HasValue ? ToUtc(endDate.Value, nameof(endDate)) : null;
         ValidateDateRange(utcStart, utcDue, utcEnd);
@@ -89,7 +99,14 @@ public sealed class Obligation
         EndDate = utcEnd;
         if (priority.HasValue) Priority = priority.Value;
         CategoryId = categoryId;
-        if (extraFields is not null) ExtraFields = NormalizeExtraFields(extraFields);
+        var newExtraFields = extraFields is not null ? NormalizeExtraFields(extraFields) : ExtraFields;
+        if (extraFieldsValidator is not null)
+        {
+            var validation = extraFieldsValidator.Validate(Type, newExtraFields);
+            if (!validation.IsValid)
+                throw new ArgumentException(validation.ErrorMessage ?? "ExtraFields validation failed.", nameof(extraFields));
+        }
+        ExtraFields = newExtraFields;
         Touch();
     }
 
@@ -128,6 +145,8 @@ public sealed class Obligation
     {
         if (Status is ObligationStatus.Completed or ObligationStatus.Skipped or ObligationStatus.Archived)
             throw new InvalidOperationException("A closed obligation cannot be postponed.");
+        if (!DueDate.HasValue)
+            throw new InvalidOperationException("Cannot postpone an obligation without a due date.");
         var utcDue = ToUtc(newDueDate, nameof(newDueDate));
         ValidateDateRange(StartDate, utcDue, EndDate);
         DueDate = utcDue;
@@ -139,6 +158,14 @@ public sealed class Obligation
     {
         DeletedAt ??= at.HasValue ? ToUtc(at.Value, nameof(at)) : DateTime.UtcNow;
         Touch();
+    }
+
+    public void Restore(DateTime? at = null)
+    {
+        if (!DeletedAt.HasValue) return;
+        DeletedAt = null;
+        Touch();
+        domainEvents.Add(new ObligationRestored(Id, at.HasValue ? ToUtc(at.Value, nameof(at)) : DateTime.UtcNow));
     }
 
     public void ClearDomainEvents() => domainEvents.Clear();
@@ -167,10 +194,10 @@ public sealed class Obligation
         }
     }
 
-    private static void ValidateDateRange(DateTime? start, DateTime due, DateTime? end)
+    private static void ValidateDateRange(DateTime? start, DateTime? due, DateTime? end)
     {
-        if (start.HasValue && start.Value > due) throw new ArgumentException("Start date must be on or before due date.");
-        if (end.HasValue && due > end.Value) throw new ArgumentException("Due date must be on or before end date.");
+        if (start.HasValue && due.HasValue && start.Value > due.Value) throw new ArgumentException("Start date must be on or before due date.");
+        if (end.HasValue && due.HasValue && due.Value > end.Value) throw new ArgumentException("Due date must be on or before end date.");
     }
 
     private static DateTime ToUtc(DateTime value, string parameterName) =>
